@@ -50,6 +50,25 @@ export default function UserReservasiPage() {
     catatan: ''
   });
 
+  // State sewa penuh (08:00 - 17:00 / hari kerja penuh)
+  const [sewaPenuh, setSewaPenuh] = useState(false);
+
+  const handleSewaPenuh = (checked: boolean) => {
+    setSewaPenuh(checked);
+    if (checked) {
+      setFormData(prev => ({ ...prev, waktuMulai: '08:00', waktuSelesai: '17:00' }));
+      // Sinkronisasi visual drag ke slot 08:00 - 17:00
+      const startIdx = timeSlots.indexOf('08:00');
+      const endIdx = timeSlots.indexOf('17:00') - 1;
+      setDragStartIndex(startIdx !== -1 ? startIdx : null);
+      setDragEndIndex(endIdx >= 0 ? endIdx : null);
+    } else {
+      setFormData(prev => ({ ...prev, waktuMulai: '', waktuSelesai: '' }));
+      setDragStartIndex(null);
+      setDragEndIndex(null);
+    }
+  };
+
   // =========================================
   // STATE & LOGIKA UNTUK DRAG-AND-DROP TIME
   // =========================================
@@ -258,6 +277,7 @@ export default function UserReservasiPage() {
         setSelectedRoom(null);
         setDragStartIndex(null);
         setDragEndIndex(null);
+        setSewaPenuh(false);
       } else {
         alert(result.message || "Gagal mengirim permohonan reservasi.");
       }
@@ -437,31 +457,58 @@ export default function UserReservasiPage() {
                       <input required type="date" name="tanggal" value={formData.tanggal} onChange={handleInputChange} className="w-full bg-slate-50/50 border border-slate-200 shadow-inner rounded-xl px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-4 focus:ring-pink-500/10 focus:border-pink-400 focus:bg-white transition-all font-medium" />
                     </div>
 
+                    {/* Toggle Sewa Penuh */}
+                    <div className="flex items-center justify-between bg-slate-50/80 border border-slate-200 rounded-xl px-4 py-3">
+                      <div>
+                        <p className="text-xs font-bold text-slate-700">Sewa Penuh Hari</p>
+                        <p className="text-[10px] text-slate-400 font-medium mt-0.5">08:00 – 17:00 (jam kerja penuh)</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleSewaPenuh(!sewaPenuh)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 focus:outline-none shadow-inner ${
+                          sewaPenuh ? 'bg-pink-500' : 'bg-slate-300'
+                        }`}
+                        aria-checked={sewaPenuh}
+                        role="switch"
+                      >
+                        <span className={`inline-block h-4 w-4 rounded-full bg-white shadow-md transform transition-transform duration-300 ${
+                          sewaPenuh ? 'translate-x-6' : 'translate-x-1'
+                        }`} />
+                      </button>
+                    </div>
+
                     {/* Timeline Waktu Interaktif (Drag & Drop) */}
                     <div className="space-y-2">
                       <div className="flex justify-between items-end">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Waktu (Pilih & Geser)</label>
-                        <span className="text-xs font-bold text-pink-600 bg-pink-50 px-2 py-0.5 rounded border border-pink-100">
-                          {formData.waktuMulai ? `${formData.waktuMulai} - ${formData.waktuSelesai}` : 'Pilih Jam'}
+                        <label className={`text-[10px] font-bold uppercase tracking-widest ${sewaPenuh ? 'text-slate-300' : 'text-slate-400'}`}>
+                          {sewaPenuh ? 'Waktu (Dikunci - Sewa Penuh)' : 'Waktu (Pilih & Geser)'}
+                        </label>
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded border ${sewaPenuh ? 'bg-pink-50 text-pink-500 border-pink-200' : 'bg-pink-50 text-pink-600 border-pink-100'}`}>
+                          {formData.waktuMulai ? `${formData.waktuMulai} – ${formData.waktuSelesai}` : 'Pilih Jam'}
                         </span>
                       </div>
                       
-                      {/* Grid Container */}
+                      {/* Grid Container — dinonaktifkan saat sewaPenuh */}
                       <div 
                         ref={timeGridRef}
-                        onMouseLeave={handleMouseUp} // Menangani jika mouse keluar dari grid
-                        className="h-[220px] overflow-y-auto custom-scrollbar border border-slate-200 rounded-xl bg-white shadow-inner relative select-none"
+                        onMouseLeave={!sewaPenuh ? handleMouseUp : undefined}
+                        className={`h-[220px] overflow-y-auto custom-scrollbar border rounded-xl bg-white shadow-inner relative select-none transition-all ${
+                          sewaPenuh ? 'border-slate-100 opacity-50 pointer-events-none cursor-not-allowed' : 'border-slate-200'
+                        }`}
                       >
                         {timeSlots.map((time, index) => (
                           <div 
                             key={index}
-                            onMouseDown={() => handleMouseDown(index)}
-                            onMouseEnter={() => handleMouseEnter(index)}
-                            onMouseUp={handleMouseUp}
-                            className={`flex items-center px-4 py-1.5 border-b border-slate-50 cursor-pointer transition-colors ${
+                            onMouseDown={!sewaPenuh ? () => handleMouseDown(index) : undefined}
+                            onMouseEnter={!sewaPenuh ? () => handleMouseEnter(index) : undefined}
+                            onMouseUp={!sewaPenuh ? handleMouseUp : undefined}
+                            className={`flex items-center px-4 py-1.5 border-b border-slate-50 transition-colors ${
+                              sewaPenuh ? 'cursor-not-allowed' : 'cursor-pointer'
+                            } ${
                               isSlotSelected(index) 
                                 ? 'bg-pink-100 border-pink-200 border-b-pink-200 z-10 relative shadow-[inset_4px_0_0_#ec4899]' 
-                                : 'hover:bg-slate-50'
+                                : sewaPenuh ? '' : 'hover:bg-slate-50'
                             }`}
                           >
                             <span className={`text-xs font-bold w-12 ${isSlotSelected(index) ? 'text-pink-600' : 'text-slate-400'}`}>
@@ -471,18 +518,36 @@ export default function UserReservasiPage() {
                           </div>
                         ))}
                       </div>
-                      <p className="text-[10px] text-slate-400 italic mt-1">*Anda juga dapat menyesuaikan waktu secara manual di bawah ini.</p>
+                      <p className="text-[10px] text-slate-400 italic mt-1">
+                        {sewaPenuh ? '*Mode sewa penuh aktif. Matikan toggle untuk memilih jam manual.' : '*Anda juga dapat menyesuaikan waktu secara manual di bawah ini.'}
+                      </p>
                     </div>
 
-                    {/* Fallback Input Manual (Otomatis Tersinkron) */}
-                    <div className="grid grid-cols-2 gap-4">
+                    {/* Fallback Input Manual — dinonaktifkan saat sewaPenuh */}
+                    <div className={`grid grid-cols-2 gap-4 transition-opacity ${sewaPenuh ? 'opacity-50' : ''}`}>
                       <div className="space-y-1 group">
                         <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Mulai</label>
-                        <input required type="time" name="waktuMulai" value={formData.waktuMulai} onChange={handleTimeChange} className="w-full bg-slate-50/50 border border-slate-200 shadow-inner rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-pink-400 font-medium" />
+                        <input
+                          required
+                          type="time"
+                          name="waktuMulai"
+                          value={formData.waktuMulai}
+                          onChange={!sewaPenuh ? handleTimeChange : undefined}
+                          disabled={sewaPenuh}
+                          className={`w-full bg-slate-50/50 border border-slate-200 shadow-inner rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-pink-400 font-medium ${sewaPenuh ? 'cursor-not-allowed' : ''}`}
+                        />
                       </div>
                       <div className="space-y-1 group">
                         <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Selesai</label>
-                        <input required type="time" name="waktuSelesai" value={formData.waktuSelesai} onChange={handleTimeChange} className="w-full bg-slate-50/50 border border-slate-200 shadow-inner rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-pink-400 font-medium" />
+                        <input
+                          required
+                          type="time"
+                          name="waktuSelesai"
+                          value={formData.waktuSelesai}
+                          onChange={!sewaPenuh ? handleTimeChange : undefined}
+                          disabled={sewaPenuh}
+                          className={`w-full bg-slate-50/50 border border-slate-200 shadow-inner rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-pink-400 font-medium ${sewaPenuh ? 'cursor-not-allowed' : ''}`}
+                        />
                       </div>
                     </div>
 
@@ -517,7 +582,7 @@ export default function UserReservasiPage() {
 
           {/* FOOTER ACTIONS */}
           <div className="p-6 md:px-8 border-t border-slate-100 bg-white/40 flex justify-end gap-4 rounded-b-[2rem]">
-            <button type="button" onClick={() => { setSelectedRoom(null); setDragStartIndex(null); setDragEndIndex(null); }} className="px-6 py-3 text-sm font-bold text-slate-500 bg-white hover:text-slate-900 border border-slate-200 rounded-xl shadow-sm hover:shadow transition-all">
+            <button type="button" onClick={() => { setSelectedRoom(null); setDragStartIndex(null); setDragEndIndex(null); setSewaPenuh(false); }} className="px-6 py-3 text-sm font-bold text-slate-500 bg-white hover:text-slate-900 border border-slate-200 rounded-xl shadow-sm hover:shadow transition-all">
               Batal
             </button>
             <button 

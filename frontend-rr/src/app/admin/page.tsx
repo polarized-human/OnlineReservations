@@ -96,7 +96,7 @@ export default function AdminDashboardPage() {
       
       {/* HEADER PAGE */}
       <div className="mb-8">
-        <h1 className="text-3xl font-extrabold text-slate-900 mb-2">Ikhtisar Sistem</h1>
+        <h1 className="text-3xl font-extrabold text-slate-900 mb-2">Dashboard Admin</h1>
         <p className="text-sm text-slate-500">Pantau aktivitas reservasi dan statistik penggunaan ruangan hari ini.</p>
       </div>
 

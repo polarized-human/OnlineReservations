@@ -296,6 +296,10 @@ export default function UserDashboardPage() {
                 const isToday = formatToYYYYMMDD(new Date()) === dateStr;
                 const dayDataFromApi = calendarData.find(d => d.date === dateStr);
 
+                // Cek apakah hari ini sudah lewat (sebelum hari ini)
+                const todayStr = formatToYYYYMMDD(new Date());
+                const isPast = dateStr < todayStr;
+
                 return (
                   <div 
                     key={day} 
@@ -303,24 +307,34 @@ export default function UserDashboardPage() {
                     className={`relative min-h-[60px] sm:min-h-[80px] p-1.5 sm:p-2 rounded-xl sm:rounded-2xl border transition-all cursor-pointer group flex flex-col ${
                       isSelected 
                         ? 'border-pink-400 bg-pink-50 shadow-[0_4px_15px_rgba(236,72,153,0.1)]' 
+                        : isPast
+                        ? 'border-slate-100 bg-slate-50/30 opacity-40'
                         : 'border-slate-100 bg-white/40 hover:bg-white/80 hover:border-pink-200 hover:shadow-sm'
                     }`}
                   >
-                    <span className={`text-xs sm:text-sm font-bold ml-0.5 sm:ml-1 ${isToday ? 'text-pink-600' : isSelected ? 'text-slate-900' : 'text-slate-500 group-hover:text-slate-900'}`}>
+                    <span className={`text-xs sm:text-sm font-bold ml-0.5 sm:ml-1 ${
+                      isToday ? 'text-pink-600' 
+                      : isSelected ? 'text-slate-900' 
+                      : isPast ? 'text-slate-400'
+                      : 'text-slate-500 group-hover:text-slate-900'
+                    }`}>
                       {day}
                     </span>
                     
-                    <div className="mt-auto flex flex-wrap gap-1 px-0.5 sm:px-1 pb-0.5 sm:pb-1">
-                      {dayDataFromApi?.color === 'penuh' && (
-                        <>
-                          <div className="w-1.5 h-1.5 rounded-full bg-pink-500" title="Full Booked"></div>
-                          <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
-                        </>
-                      )}
-                      {dayDataFromApi?.color === 'ada_jadwal' && (
-                        <div className="w-1.5 h-1.5 rounded-full bg-blue-400" title="Ada Agenda"></div>
-                      )}
-                    </div>
+                    {/* Titik indikator HANYA ditampilkan untuk hari ini dan ke depan */}
+                    {!isPast && (
+                      <div className="mt-auto flex flex-wrap gap-1 px-0.5 sm:px-1 pb-0.5 sm:pb-1">
+                        {dayDataFromApi?.color === 'penuh' && (
+                          <>
+                            <div className="w-1.5 h-1.5 rounded-full bg-rose-500" title="Full Booked"></div>
+                            <div className="w-1.5 h-1.5 rounded-full bg-rose-400"></div>
+                          </>
+                        )}
+                        {dayDataFromApi?.color === 'ada_jadwal' && (
+                          <div className="w-1.5 h-1.5 rounded-full bg-blue-400" title="Ada Agenda"></div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -329,7 +343,8 @@ export default function UserDashboardPage() {
             {/* Legend */}
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-6 mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-slate-100 text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest justify-center items-center">
                 <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-blue-400"></div> Ada Agenda</div>
-                <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-pink-500"></div> Padat / Full Booked</div>
+                <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-rose-500"></div> Padat / Full Booked</div>
+                <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-slate-300"></div> Hari Lampau</div>
             </div>
           </div>
 

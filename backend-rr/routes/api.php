@@ -22,6 +22,7 @@ Route::get('/rooms', [RoomController::class, 'index']); // Membolehkan katalog r
 Route::get('/auth/google', [AuthController::class, 'redirectToGoogle']);
 Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallback']);
 
+
 // ===================================================
 // RUTE API TERPROTEKSI (Wajib membawa Token Bearer Sanctum)
 // ===================================================

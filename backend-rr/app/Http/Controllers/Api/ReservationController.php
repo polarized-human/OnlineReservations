@@ -82,9 +82,16 @@ class ReservationController extends Controller
         // Notifikasi untuk Admin/Verifikator
         $reservation->load('room'); 
         
-        // Gunakan nama variabel $reservation (bukan $reservasi)
         $tglRequest = Carbon::parse($reservation->tanggal)->translatedFormat('d M Y');
-        // SESUAIKAN DENGAN NAMA ROLE DI DATABASE ANDA
+
+        // --- NOTIFIKASI UNTUK USER PEMOHON (konfirmasi pengajuan diterima) ---
+        Notification::create([
+            'user_id' => $userId,
+            'pesan'   => "Reservasi Anda untuk Ruangan {$reservation->room->nama} pada {$tglRequest} ({$reservation->waktu_mulai} - {$reservation->waktu_selesai}) sedang MENUNGGU PERSETUJUAN dari admin.",
+            'unread'  => true,
+        ]);
+
+        // --- NOTIFIKASI UNTUK ADMIN/VERIFIKATOR ---
         $staffs = User::whereIn('role', ['Admin Kominfotik', 'Superadmin', 'Asisten/Pimpinan'])->get();
 
         foreach ($staffs as $staff) {
@@ -127,28 +134,32 @@ class ReservationController extends Controller
             $reservation->load(['room', 'user']); 
 
             $tglRequest = Carbon::parse($reservation->tanggal)->translatedFormat('d M Y');
-            $statusTeks = $request->status === 'Disetujui' ? 'DISETUJUI' : 'DITOLAK';
             $approverRole = $request->user() ? $request->user()->role : 'Verifikator';
 
             // --- A. NOTIFIKASI UNTUK USER PEMOHON ---
+            if ($request->status === 'Disetujui') {
+                $pesanUser = "✅ Reservasi Anda untuk Ruangan {$reservation->room->nama} pada {$tglRequest} ({$reservation->waktu_mulai} - {$reservation->waktu_selesai}) telah DISETUJUI oleh {$approverRole}. Silakan gunakan ruangan sesuai jadwal.";
+            } else {
+                $pesanUser = "❌ Reservasi Anda untuk Ruangan {$reservation->room->nama} pada {$tglRequest} ({$reservation->waktu_mulai} - {$reservation->waktu_selesai}) telah DITOLAK oleh {$approverRole}. Silakan hubungi admin untuk informasi lebih lanjut.";
+            }
+
             Notification::create([
                 'user_id' => $reservation->user_id,
-                'pesan'   => "Reservasi Anda untuk {$reservation->room->nama} (Tgl: {$tglRequest}) telah {$statusTeks} oleh {$approverRole}.",
+                'pesan'   => $pesanUser,
                 'unread'  => true,
             ]);
 
-            // --- B. NOTIFIKASI UNTUK ADMIN KOMINFOTIK ---
-            // Cari semua Admin agar mereka tahu Verifikator sudah bekerja
+            // --- B. NOTIFIKASI UNTUK ADMIN/PENGURUS LAINNYA ---
             $semuaPengurus = \App\Models\User::where('role', '!=', 'User Bagian')->get();            
             
             foreach ($semuaPengurus as $pengurus) {
-                // Hindari mengirim notif ke diri sendiri jika Admin yang memverifikasi
                 if ($request->user() && $pengurus->id === $request->user()->id) continue;
                 if ($pengurus->id === $reservation->user_id) continue;
 
+                $statusTeks = $request->status === 'Disetujui' ? 'DISETUJUI' : 'DITOLAK';
                 Notification::create([
                     'user_id' => $pengurus->id,
-                    'pesan'   => "Reservasi {$reservation->room->nama} dari {$reservation->user->name} telah {$statusTeks}.",
+                    'pesan'   => "Reservasi {$reservation->room->nama} dari {$reservation->user->name} (Tgl: {$tglRequest}) telah {$statusTeks}.",
                     'unread'  => true,
                 ]);
             }
