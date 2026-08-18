@@ -112,7 +112,6 @@ Aplikasi frontend akan berjalan di `http://localhost:3000` dan backend API di `h
 
 ## 🔗 Demo & Tautan Lain
 
-- 🌐 Live Demo: *(tambahkan link jika sudah pernah di-deploy, misal Vercel)*
 - 📸 Dokumentasi Screenshot: [`/FotoDemo`](./FotoDemo)
 
 ---
